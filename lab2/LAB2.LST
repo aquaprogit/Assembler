@@ -1,0 +1,195 @@
+Turbo Assembler	 Version 4.0	    05/28/23 25:00:44	    Page 1
+lab2.asm
+
+
+
+      1	0000			     STSEG SEGMENT PARA	STACK "STACK"
+      2	0000  40*(53 54	41 43 4B)    DB	64 DUP ("STACK")
+      3	0140			     STSEG ENDS
+      4
+      5	0000			     DSEG SEGMENT PARA "DATA"
+      6	0000  07 ?? 07*(00)	     inputValue	DB 7, ?, 7 DUP ( 0 )
+      7	0009  00		     isNegative	DB 0
+      8	000A  0000		     number DW 0
+      9	000C  45 4E 54 45 52 20	41+  label1 DB "ENTER A	NUMBER [-32 767; 32 689]: $"
+     10	      20 4E 55 4D 42 45	52+
+     11	      20 5B 2D 33 32 20	37+
+     12	      36 37 3B 20 33 32	20+
+     13	      36 38 39 5D 3A 20	24
+     14	002F  4E		     increaseValue DB 78
+     15	0030  0A 0D 24		     newLine DB	10, 13,	"$"
+     16	0033  49 6E 63 6F 72 72	65+  formatErr DB "Incorrect input!$"
+     17	      63 74 20 69 6E 70	75+
+     18	      74 21 24
+     19	0044  4F 76 65 72 66 6C	6F+  overflowErr DB "Overflow error!$"
+     20	      77 20 65 72 72 6F	72+
+     21	      21 24
+     22	0054			     DSEG ENDS
+     23
+     24	0000			     CSEG SEGMENT PARA "CODE"
+     25	0000			     MAIN PROC FAR
+     26				     ASSUME CS:CSEG, DS:DSEG, SS:STSEG
+     27
+     28	0000  1E		     PUSH DS
+     29	0001  33 C0		     XOR AX, AX
+     30	0003  50		     PUSH AX
+     31
+     32	0004  B8 0000s		     MOV AX, DSEG
+     33	0007  8E D8		     MOV DS, AX
+     34
+     35	0009  E8 0009		     CALL Input
+     36
+     37	000C  E8 0080		     CALL digit
+     38
+     39	000F  CB		     RET
+     40	0010			     MAIN ENDP
+     41
+     42	0010			     Print PROC
+     43	0010  B4 09			 MOV AH, 9
+     44	0012  CD 21			 INT 21H
+     45	0014  C3			 RET
+     46	0015			     Print ENDP
+     47
+     48	0015			     Input PROC
+     49	0015				 INPSTART:
+     50	0015  BA 000Cr			 LEA DX, label1
+     51	0018  E8 FFF5			 CALL Print
+     52
+     53	001B  BA 0000r			 LEA DX, inputValue
+     54	001E  B4 0A			 MOV AH, 10
+     55	0020  CD 21			 INT 21H
+     56
+     57	0022  BA 0030r			 LEA DX, newLine
+Turbo Assembler	 Version 4.0	    05/28/23 25:00:44	    Page 2
+lab2.asm
+
+
+
+     58	0025  E8 FFE8			 CALL Print
+     59
+     60	0028  33 C0			 XOR AX, AX
+     61
+     62	002A  8A 0E 0001r		 MOV CL, inputValue + 1
+     63	002E  BE 0002			 MOV SI, 2
+     64
+     65	0031  80 3E 0002r 2D		 CMP inputValue	+ 2, '-'
+     66	0036  75 08			 JNE ITER
+     67	0038  46			 INC SI
+     68	0039  FE C9			 DEC CL
+     69	003B  C6 06 0009r 01		 MOV isNegative, 1
+     70	0040				 ITER:
+     71	0040  8A 9C 0000r		     MOV BL, inputValue[SI]
+     72	0044  88 1E 0000r		     MOV inputValue, BL
+     73
+     74	0048  80 FB 30			     CMP BL, '0'
+     75	004B  7C 22			     JL	INCORRECT
+     76	004D  80 FB 39			     CMP BL, '9'
+     77	0050  7F 1D			     JG	INCORRECT
+     78
+     79	0052  80 EB 30			     SUB BL, '0'
+     80
+     81	0055  BA 000A			     MOV DX, 10
+     82	0058  F7 E2			     MUL DX
+     83	005A  70 21			     JO	OVERF
+     84	005C  03 C3			     ADD AX, BX
+     85	005E  70 1D			     JO	OVERF
+     86	0060  46			     INC SI
+     87	0061  E2 DD			 LOOP ITER
+     88	0063  80 3E 0009r 01		 CMP isNegative, 1
+     89	0068  75 21			 JNE INPUTEND
+     90	006A  F7 D8			 NEG AX
+     91	006C  EB 1D 90			 JMP INPUTEND
+     92
+     93	006F				 INCORRECT:
+     94	006F  BA 0033r			     LEA DX, formatErr
+     95	0072  E8 FF9B			     CALL Print
+     96	0075  BA 0030r			     LEA DX, newLine
+     97	0078  E8 FF95			     CALL Print
+     98	007B  EB 98			     JMP INPSTART
+     99	007D				 OVERF:
+    100	007D  BA 0044r			     LEA DX, overflowErr
+    101	0080  E8 FF8D			     CALL Print
+    102	0083  BA 0030r			     LEA DX, newLine
+    103	0086  E8 FF87			     CALL Print
+    104	0089  EB 8A			     JMP INPSTART
+    105	008B				 INPUTEND:
+    106	008B  A3 000Ar			     MOV number, AX
+    107	008E  C3			 RET
+    108	008F			     INPUT ENDP
+    109
+    110	008F			     digit proc
+    111	008F  8B 1E 000Ar		 mov bx, number
+    112	0093  0B DB			 or bx,	bx
+    113	0095  79 06			 jns m1
+    114	0097  B0 2D			 mov al, '-'
+Turbo Assembler	 Version 4.0	    05/28/23 25:00:44	    Page 3
+lab2.asm
+
+
+
+    115	0099  CD 29			 int 29h
+    116	009B  F7 DB			 neg bx
+    117	009D				 m1:
+    118	009D  8B C3			     mov ax, bx
+    119	009F  33 C9			     xor cx, cx
+    120	00A1  BB 000A			     mov bx, 10
+    121	00A4				 m2:
+    122	00A4  33 D2			     xor dx, dx
+    123	00A6  F7 F3			     div bx
+    124	00A8  80 C2 30			     add dl, '0'
+    125	00AB  52			     push dx
+    126	00AC  41			     inc cx
+    127	00AD  85 C0			     test ax, ax
+    128	00AF  75 F3			     jnz m2
+    129	00B1				 m3:
+    130	00B1  58			     pop ax
+    131	00B2  CD 29			     int 29h
+    132	00B4  E2 FB			     loop m3
+    133	00B6  C3			 ret
+    134	00B7			     digit endp
+    135
+    136	00B7			     CSEG ENDS
+    137				     END MAIN
+Turbo Assembler	 Version 4.0	    05/28/23 25:00:44	    Page 4
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "05/28/23"
+??FILENAME			  Text	 "lab2	  "
+??TIME				  Text	 "25:00:44"
+??VERSION			  Number 0400
+@CPU				  Text	 0101H
+@CURSEG				  Text	 CSEG
+@FILENAME			  Text	 LAB2
+@WORDSIZE			  Text	 2
+DIGIT				  Near	 CSEG:008F
+FORMATERR			  Byte	 DSEG:0033
+INCORRECT			  Near	 CSEG:006F
+INCREASEVALUE			  Byte	 DSEG:002F
+INPSTART			  Near	 CSEG:0015
+INPUT				  Near	 CSEG:0015
+INPUTEND			  Near	 CSEG:008B
+INPUTVALUE			  Byte	 DSEG:0000
+ISNEGATIVE			  Byte	 DSEG:0009
+ITER				  Near	 CSEG:0040
+LABEL1				  Byte	 DSEG:000C
+M1				  Near	 CSEG:009D
+M2				  Near	 CSEG:00A4
+M3				  Near	 CSEG:00B1
+MAIN				  Far	 CSEG:0000
+NEWLINE				  Byte	 DSEG:0030
+NUMBER				  Word	 DSEG:000A
+OVERF				  Near	 CSEG:007D
+OVERFLOWERR			  Byte	 DSEG:0044
+PRINT				  Near	 CSEG:0010
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+CSEG				  16  00B7 Para	  none	  CODE
+DSEG				  16  0054 Para	  none	  DATA
+STSEG				  16  0140 Para	  Stack	  STACK
+
